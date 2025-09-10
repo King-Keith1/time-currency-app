@@ -1,35 +1,57 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import {
+  MantineProvider,
+  ColorSchemeProvider,
+  AppShell,
+  Header,
+  Footer,
+  Group,
+  Button,
+  Text,
+} from "@mantine/core";
+import CurrencyConverter from "./components/CurrencyConverter";
+import TimeConverter from "./components/TimeConverter";
+import Pins from "./components/Pins";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [colorScheme, setColorScheme] = useState("light");
+  const toggleColorScheme = () =>
+    setColorScheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <ColorSchemeProvider
+      colorScheme={colorScheme}
+      toggleColorScheme={toggleColorScheme}
+    >
+      <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
+        <AppShell
+          header={
+            <Header height={60} p="sm">
+              <Group position="apart">
+                <Text fw={700}>🌍 Time & Currency Converter</Text>
+                <Button size="xs" onClick={toggleColorScheme}>
+                  {colorScheme === "dark" ? "Light Mode" : "Dark Mode"}
+                </Button>
+              </Group>
+            </Header>
+          }
+          footer={
+            <Footer height={40} p="sm">
+              <Text size="xs" align="center" style={{ width: "100%" }}>
+                © {new Date().getFullYear()} My Converter App
+              </Text>
+            </Footer>
+          }
+        >
+          <Group align="flex-start" spacing="xl" grow>
+            <CurrencyConverter />
+            <TimeConverter />
+            <Pins />
+          </Group>
+        </AppShell>
+      </MantineProvider>
+    </ColorSchemeProvider>
+  );
 }
 
-export default App
+export default App;
