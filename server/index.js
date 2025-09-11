@@ -22,10 +22,10 @@ app.get("/api/currency/:base", async (req, res) => {
 });
 
 // Example time endpoint
-app.get("/api/time/:zone", async (req, res) => {
-  const { zone } = req.params;
+app.get("/api/time/:continent/:city", async (req, res) => {
+  const { continent, city } = req.params;
   try {
-    const response = await axios.get(`http://worldtimeapi.org/api/timezone/${zone}`);
+    const response = await axios.get(`http://worldtimeapi.org/api/timezone/${continent}/${city}`);
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch time" });
