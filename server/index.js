@@ -14,7 +14,6 @@ app.use(express.json());
 app.get("/api/currency/:base", async (req, res) => {
   const { base } = req.params;
   try {
-    // Example free API (ExchangeRate.host doesn’t need an API key)
     const response = await axios.get(`https://api.exchangerate.host/latest?base=${base}`);
     res.json(response.data);
   } catch (error) {
