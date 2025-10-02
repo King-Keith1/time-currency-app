@@ -44,9 +44,7 @@ app.get("/api/convert", async (req, res) => {
       .json({ error: "Missing required query params: from, to, amount" });
   }
 
-  console.log(
-    `Received /api/convert request: ${amount} ${from} -> ${to}`
-  );
+  console.log(`Received /api/convert request: ${amount} ${from} -> ${to}`);
 
   try {
     const url = `https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`;
@@ -69,31 +67,24 @@ app.get("/api/convert", async (req, res) => {
 async function getTimeForZone(zone) {
   const providers = [
     {
-      name: "timeapi.io",
-      url: `https://timeapi.io/api/Time/current/zone?timeZone=${zone}`,
-      transform: (data) => ({
-        datetime: data.dateTime,
-        timezone: data.timeZone,
-        provider: "timeapi.io",
-      }),
-    },
-    {
-      name: "worldtimeapi",
-      url: `http://worldtimeapi.org/api/timezone/${zone}`,
-      transform: (data) => ({
-        datetime: data.datetime,
-        timezone: data.timezone,
-        provider: "worldtimeapi",
-      }),
-    },
+  name: "timezonedb",
+  url: `http://api.timezonedb.com/v2.1/get-time-zone?key=${process.env.TIMEZONEDB_KEY}&format=json&by=zone&zone=${zone}`,
+  transform: (data) => ({
+    datetime: data.formatted,
+    timezone: data.zoneName,
+    provider: "timezonedb",
+  }),
+}
   ];
 
   for (const provider of providers) {
     try {
+      console.log(`🔗 Fetching from ${provider.name}: ${provider.url}`);
       const res = await axios.get(provider.url, { timeout: 5000 });
+      console.log(`✅ Success from ${provider.name}`);
       return provider.transform(res.data);
     } catch (err) {
-      console.log(`Time provider ${provider.name} failed:`, err.message);
+      console.log(`❌ Time provider ${provider.name} failed for ${zone}:`, err.message);
       continue;
     }
   }
@@ -101,6 +92,20 @@ async function getTimeForZone(zone) {
   throw new Error("All time providers failed");
 }
 
+
+app.get('/api/time/Europe/London', (req, res) => {
+  // Code to handle the request and send a response
+  res.send('This is the time for Europe/London');
+});
+
+app.get('/api/time/:continent/:city', (req, res) => {
+  const continent = req.params.continent;
+  const city = req.params.city;
+  // Code to handle the request and send a response
+  res.send(`This is the time for ${continent}/${city}`);
+});
+
+// Single timezone
 app.get("/api/time/:zone", async (req, res) => {
   const { zone } = req.params;
   console.log(`Received /api/time request for zone: ${zone}`);
@@ -110,6 +115,35 @@ app.get("/api/time/:zone", async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Multiple timezones
+app.get("/api/times", async (req, res) => {
+  let { zones } = req.query;
+
+  if (!zones) {
+    return res.status(400).json({ error: "Missing ?zones= param" });
+  }
+
+  zones = zones.split(",");
+
+  console.log(`Received /api/times request for zones: ${zones.join(", ")}`);
+
+  try {
+    const results = await Promise.all(
+      zones.map(async (zone) => {
+        try {
+          return await getTimeForZone(zone);
+        } catch (err) {
+          return { timezone: zone, error: err.message };
+        }
+      })
+    );
+
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch times" });
   }
 });
 
