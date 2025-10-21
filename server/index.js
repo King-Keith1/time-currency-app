@@ -10,15 +10,14 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-/* ---------------- CURRENCY ---------------- */
+/* ------------------------  CURRENCY  ------------------------ */
 
-// Currency rates
+// Get all rates for a base currency
 app.get("/api/currency/:base", async (req, res) => {
   const { base } = req.params;
-  console.log(`Received /api/currency request for base: ${base}`);
+  console.log(`💱 Request: /api/currency/${base}`);
 
   try {
-    // Frankfurter API
     const url = `https://api.frankfurter.app/latest?from=${base}`;
     const response = await axios.get(url, { timeout: 5000 });
 
@@ -27,14 +26,14 @@ app.get("/api/currency/:base", async (req, res) => {
       base: response.data.base,
       rates: response.data.rates,
       date: response.data.date,
-      raw: response.data,
     });
   } catch (error) {
+    console.error("❌ Currency API error:", error.message);
     res.status(500).json({ error: "Failed to fetch exchange rates" });
   }
 });
 
-// Convert endpoint
+// Convert specific amount
 app.get("/api/convert", async (req, res) => {
   const { from, to, amount } = req.query;
 
@@ -44,7 +43,7 @@ app.get("/api/convert", async (req, res) => {
       .json({ error: "Missing required query params: from, to, amount" });
   }
 
-  console.log(`Received /api/convert request: ${amount} ${from} -> ${to}`);
+  console.log(`💱 Converting: ${amount} ${from} -> ${to}`);
 
   try {
     const url = `https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`;
@@ -55,60 +54,63 @@ app.get("/api/convert", async (req, res) => {
       query: { from, to, amount },
       result: response.data.rates[to],
       date: response.data.date,
-      raw: response.data,
     });
   } catch (error) {
+    console.error("❌ Conversion error:", error.message);
     res.status(500).json({ error: "Failed to convert currency" });
   }
 });
 
-/* ---------------- TIME ---------------- */
+/* ------------------------  TIME  ------------------------ */
 
+// Helper: Try multiple providers (fallback strategy)
 async function getTimeForZone(zone) {
   const providers = [
     {
-  name: "timezonedb",
-  url: `http://api.timezonedb.com/v2.1/get-time-zone?key=${process.env.TIMEZONEDB_KEY}&format=json&by=zone&zone=${zone}`,
-  transform: (data) => ({
-    datetime: data.formatted,
-    timezone: data.zoneName,
-    provider: "timezonedb",
-  }),
-}
+      name: "worldtimeapi",
+      url: `https://worldtimeapi.org/api/timezone/${zone}`,
+      transform: (data) => ({
+        datetime: data.datetime.slice(0, 19).replace("T", " "),
+        timezone: data.timezone,
+        abbreviation: data.abbreviation,
+        provider: "worldtimeapi",
+      }),
+    },
+    {
+      name: "timeapi",
+      url: `https://timeapi.io/api/Time/current/zone?timeZone=${zone}`,
+      transform: (data) => ({
+        datetime: `${data.year}-${String(data.month).padStart(2, "0")}-${String(
+          data.day
+        ).padStart(2, "0")} ${String(data.hour).padStart(2, "0")}:${String(
+          data.minute
+        ).padStart(2, "0")}:${String(data.seconds).padStart(2, "0")}`,
+        timezone: data.timeZone,
+        abbreviation: "",
+        provider: "timeapi",
+      }),
+    },
   ];
 
   for (const provider of providers) {
     try {
-      console.log(`🔗 Fetching from ${provider.name}: ${provider.url}`);
+      console.log(`⏱️ Fetching from ${provider.name}: ${provider.url}`);
       const res = await axios.get(provider.url, { timeout: 5000 });
       console.log(`✅ Success from ${provider.name}`);
       return provider.transform(res.data);
     } catch (err) {
-      console.log(`❌ Time provider ${provider.name} failed for ${zone}:`, err.message);
-      continue;
+      console.log(`❌ Provider ${provider.name} failed for ${zone}: ${err.message}`);
     }
   }
 
   throw new Error("All time providers failed");
 }
 
-
-app.get('/api/time/Europe/London', (req, res) => {
-  // Code to handle the request and send a response
-  res.send('This is the time for Europe/London');
-});
-
-app.get('/api/time/:continent/:city', (req, res) => {
-  const continent = req.params.continent;
-  const city = req.params.city;
-  // Code to handle the request and send a response
-  res.send(`This is the time for ${continent}/${city}`);
-});
-
 // Single timezone
-app.get("/api/time/:zone", async (req, res) => {
-  const { zone } = req.params;
-  console.log(`Received /api/time request for zone: ${zone}`);
+app.get("/api/time/*zone", async (req, res) => {
+  const zoneSegments = req.params.zone;
+  const zone = Array.isArray(zoneSegments) ? zoneSegments.join("/") : zoneSegments;
+  console.log(`🕒 Request: /api/time/${zone}`);
 
   try {
     const data = await getTimeForZone(zone);
@@ -126,9 +128,8 @@ app.get("/api/times", async (req, res) => {
     return res.status(400).json({ error: "Missing ?zones= param" });
   }
 
-  zones = zones.split(",");
-
-  console.log(`Received /api/times request for zones: ${zones.join(", ")}`);
+  zones = decodeURIComponent(zones).split(",");
+  console.log(`🕒 Request: /api/times for ${zones.join(", ")}`);
 
   try {
     const results = await Promise.all(
@@ -140,15 +141,28 @@ app.get("/api/times", async (req, res) => {
         }
       })
     );
-
     res.json({ results });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch times" });
   }
 });
 
-/* ---------------- SERVER ---------------- */
+/* ------------------------  LOCAL SERVER TIME  ------------------------ */
 
-app.listen(PORT, () =>
-  console.log(`✅ Server running on http://localhost:${PORT}`)
-);
+// Get server's local time (offline, no API calls)
+app.get("/api/server-time", (req, res) => {
+  const now = new Date();
+
+  res.json({
+    utc: now.toISOString(),
+    localTime: now.toLocaleString(),
+    serverTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    provider: "local-system",
+  });
+});
+
+/* ------------------------  START SERVER  ------------------------ */
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
