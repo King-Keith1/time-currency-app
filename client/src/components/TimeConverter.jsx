@@ -1,33 +1,60 @@
-import React, { useState, useEffect } from "react";
-import timezones from "../data/timezones.json";
-import { getLocalTimeZone, convertToTimeZone } from "../utils/timeUtils";
+import { Card, Text, Button, Group, Select } from "@mantine/core";
+import { useState } from "react";
+import { getTimeZoneOptions, convertToTimeZone } from "../utils/timeUtils";
 
-const TimeConverter = () => {
-  const [selectedZone, setSelectedZone] = useState(getLocalTimeZone());
-  const [currentTime, setCurrentTime] = useState("");
+function TimeConverter() {
+  const timezoneOptions = getTimeZoneOptions();
 
-  useEffect(() => {
-    const options = getTimeZoneOptions();
-    console.log("Dropdown options:", options.slice(0, 3));
+  const [sourceZone, setSourceZone] = useState(timezoneOptions[0]?.value || "America/New_York");
+  const [targetZone, setTargetZone] = useState(timezoneOptions[1]?.value || "Europe/London");
+  const [result, setResult] = useState(null);
 
-    const now = new Date();
-    console.log("Time in Tokyo:", convertToTimeZone(now, "Asia/Tokyo"));
-  }, []);
+  const handleConvert = () => {
+    try {
+      const now = new Date();
+
+      const sourceTime = convertToTimeZone(now, sourceZone, { timeStyle: "long", dateStyle: "long" });
+      const targetTime = convertToTimeZone(now, targetZone, { timeStyle: "long", dateStyle: "long" });
+
+      setResult(`${sourceTime} in ${sourceZone} = ${targetTime} in ${targetZone}`);
+    } catch (error) {
+      setResult("Error: Invalid time zone");
+    }
+  };
+
+  const handlePin = () => {
+    const pinItem = `${sourceZone} → ${targetZone}`;
+    const pins = JSON.parse(localStorage.getItem("pins") || "[]");
+    if (!pins.includes(pinItem)) {
+      pins.push(pinItem);
+      localStorage.setItem("pins", JSON.stringify(pins));
+    }
+  };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "2rem" }}>
-      <h2>🕒 Time Zone Converter</h2>
-      <p>Current Time in {selectedZone}: <strong>{currentTime}</strong></p>
-
-      <select onChange={(e) => setSelectedZone(e.target.value)} value={selectedZone}>
-        {timezones.map((t, index) => (
-          <option key={index} value={t.zone}>
-            {t.city} ({t.country})
-          </option>
-        ))}
-      </select>
-    </div>
+    <Card shadow="sm" p="lg" radius="md" withBorder style={{ flex: 1 }}>
+      <Text fw={600} mb="sm">⏰ Time Converter</Text>
+      <Group grow>
+        <Select
+          searchable
+          data={timezoneOptions}
+          value={sourceZone}
+          onChange={setSourceZone}
+          label="From"
+        />
+        <Select
+          searchable
+          data={timezoneOptions}
+          value={targetZone}
+          onChange={setTargetZone}
+          label="To"
+        />
+      </Group>
+      <Button mt="md" onClick={handleConvert}>Convert</Button>
+      {result && <Text mt="sm">{result}</Text>}
+      {result && <Button mt="xs" variant="light" onClick={handlePin}>Pin this conversion</Button>}
+    </Card>
   );
-};
+}
 
 export default TimeConverter;
