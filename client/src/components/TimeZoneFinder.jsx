@@ -1,6 +1,7 @@
+// client/src/components/TimeZoneFinder.jsx
 import { useState, useEffect, useMemo } from "react";
 import timezones from "../data/timezones.json";
- 
+
 const ALL_OPTIONS = timezones.flatMap(tz =>
   tz.utc.map(iana => ({
     label: `${tz.text}`,
@@ -10,7 +11,7 @@ const ALL_OPTIONS = timezones.flatMap(tz =>
     searchText: `${tz.text} ${iana} ${tz.abbr}`.toLowerCase(),
   }))
 );
- 
+
 function formatInZone(date, zone) {
   try {
     return new Intl.DateTimeFormat("en-GB", {
@@ -22,7 +23,7 @@ function formatInZone(date, zone) {
     }).format(date);
   } catch { return "--:--:--"; }
 }
- 
+
 function formatDateInZone(date, zone) {
   try {
     return new Intl.DateTimeFormat("en-GB", {
@@ -33,7 +34,7 @@ function formatDateInZone(date, zone) {
     }).format(date);
   } catch { return ""; }
 }
- 
+
 function getOffsetLabel(zone) {
   try {
     const parts = new Intl.DateTimeFormat("en", {
@@ -43,35 +44,35 @@ function getOffsetLabel(zone) {
     return parts.find(p => p.type === "timeZoneName")?.value || "";
   } catch { return ""; }
 }
- 
+
 export default function TimeZoneFinder() {
   const userZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(userZone);
   const [now, setNow] = useState(new Date());
- 
+
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
- 
+
   const filtered = useMemo(() => {
     if (!search.trim()) return ALL_OPTIONS.slice(0, 30);
     const q = search.toLowerCase();
     return ALL_OPTIONS.filter(o => o.searchText.includes(q)).slice(0, 50);
   }, [search]);
- 
+
   const selectedOption = ALL_OPTIONS.find(o => o.value === selected);
   const time = formatInZone(now, selected);
   const date = formatDateInZone(now, selected);
   const offset = getOffsetLabel(selected);
- 
+
   return (
     <div>
       {/* Live clock for selected zone */}
       <div className="card">
         <div className="card-title">🌍 Zone Finder</div>
- 
+
         <div className="clock-display">
           <div className="clock-time">{time}</div>
           <div className="clock-date">{date}</div>
@@ -80,7 +81,7 @@ export default function TimeZoneFinder() {
             {selectedOption && ` · ${selectedOption.abbr}`}
           </div>
         </div>
- 
+
         {/* Search */}
         <div className="field" style={{ marginTop: "1rem" }}>
           <label>Search timezone</label>
@@ -91,7 +92,7 @@ export default function TimeZoneFinder() {
             placeholder="City, country, or code…"
           />
         </div>
- 
+
         {/* Results list */}
         <div className="zone-list">
           {filtered.length > 0 ? filtered.map(opt => (
@@ -111,7 +112,7 @@ export default function TimeZoneFinder() {
             </div>
           )}
         </div>
- 
+
         {!search && (
           <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.5rem", textAlign: "center" }}>
             Showing first 30 zones · Search to filter
