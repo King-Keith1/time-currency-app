@@ -1,3 +1,4 @@
+//client/src/components/Pins.jsx
 import { Card, Text, List } from "@mantine/core";
 
 function Pins() {

@@ -1,3 +1,4 @@
+//client/src/App.jsx
 import { MantineProvider } from "@mantine/core";
 import { useState } from "react";
 import React from "react";
