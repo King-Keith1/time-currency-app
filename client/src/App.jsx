@@ -34,10 +34,10 @@ export default function App() {
   };
 
   const tabs = [
-    { id: "time", label: "Time Converter", icon: "⏰" },
-    { id: "currency", label: "Currency", icon: "💱" },
-    { id: "zones", label: "Zone Finder", icon: "🌍" },
-    { id: "pins", label: "Favourites", icon: "📌" },
+    { id: "time", label: "Time Converter", icon: "⏱" },
+    { id: "currency", label: "Currency", icon: "fx" },
+    { id: "zones", label: "Zone Finder", icon: "◎" },
+    { id: "pins", label: "Favourites", icon: "◈" },
   ];
 
   return (
@@ -45,7 +45,7 @@ export default function App() {
       <header className="app-header">
         <div className="header-inner">
           <div className="brand">
-            <span className="brand-icon">✈</span>
+            <span className="brand-icon">✦</span>
             <div>
               <h1 className="brand-title">Wayfarer</h1>
               <p className="brand-sub">Time & Currency for Travellers</p>

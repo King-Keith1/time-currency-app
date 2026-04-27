@@ -80,7 +80,7 @@ export default function TimeConverter({ onPin }) {
   const swap = () => { setFrom(to); setTo(from); };
 
   const handlePin = () => {
-    const item = `⏰ ${from} → ${to}`;
+    const item = `${from} → ${to}`;
     onPin(item);
     setPinned(true);
   };
@@ -88,14 +88,14 @@ export default function TimeConverter({ onPin }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title">⏰ Time Converter</div>
+        <div className="card-title">Time Converter</div>
 
         {/* FROM clock */}
         <div className="field">
           <label>From</label>
           <select value={from} onChange={e => setFrom(e.target.value)}>
-            {OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+            {OPTIONS.map((o, i) => (
+              <option key={`${o.value}-${i}`} value={o.value}>{o.label}</option>
             ))}
           </select>
         </div>
@@ -129,7 +129,7 @@ export default function TimeConverter({ onPin }) {
 
         <div className="btn-row">
           <button className="btn-ghost" onClick={handlePin} disabled={pinned}>
-            {pinned ? "✓ Pinned" : "📌 Pin this pair"}
+            {pinned ? "Saved" : "Save this pair"}
           </button>
         </div>
       </div>
